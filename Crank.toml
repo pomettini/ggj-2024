@@ -1,0 +1,10 @@
+[[target]]
+name = "ggj-2024"
+assets = []
+
+[target.metadata]
+name = "GGJ 2024"
+author = "Giorgio Pomettini"
+bundle_id = "com.pomettini.ggj2024"
+version = "0.1"
+image_path = "assets/launcher"
