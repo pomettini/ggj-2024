@@ -1,23 +1,13 @@
+use alloc::string::String;
+use anyhow::Ok;
 use crankstart::{graphics, log_to_console};
 use euclid::Trig;
-use rand::RngCore;
+use rand::{
+    distributions::{self, DistMap},
+    RngCore,
+};
 
 use super::*;
-
-#[inline(always)]
-const fn white() -> LCDColor {
-    LCDColor::Solid(LCDSolidColor::kColorWhite)
-}
-
-#[inline(always)]
-const fn black() -> LCDColor {
-    LCDColor::Solid(LCDSolidColor::kColorBlack)
-}
-
-#[inline(always)]
-const fn xor() -> LCDColor {
-    LCDColor::Solid(LCDSolidColor::kColorXOR)
-}
 
 #[inline(always)]
 pub fn draw_mountains(delta: f32) -> Result<(), Error> {
@@ -108,10 +98,10 @@ pub fn draw_wheels(delta: f32) -> Result<(), Error> {
             0.0,
             black(),
         )?;
-        let first_wheel_x = ((delta as f32 / 10.0).sin() * 26.0) as i32;
-        let first_wheel_y = ((delta as f32 / 10.0).cos() * 26.0) as i32;
-        let second_wheel_x = ((((delta as f32) + 15.7) / 10.0).sin() * 26.0) as i32;
-        let second_wheel_y = ((((delta as f32) + 15.7) / 10.0).cos() * 26.0) as i32;
+        let first_wheel_x = ((delta / 10.0).sin() * 26.0) as i32;
+        let first_wheel_y = ((delta / 10.0).cos() * 26.0) as i32;
+        let second_wheel_x = (((delta + 15.7) / 10.0).sin() * 26.0) as i32;
+        let second_wheel_y = (((delta + 15.7) / 10.0).cos() * 26.0) as i32;
         // First wheel
         graphics.draw_line(
             Point2D::new(
@@ -145,8 +135,8 @@ pub fn draw_wheels(delta: f32) -> Result<(), Error> {
 #[inline(always)]
 pub fn draw_wheel_bars(delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
-    let sin = ((delta as f32 / 10.0).sin() * 28.0) as i32;
-    let cos = ((delta as f32 / 10.0).cos() * 28.0) as i32;
+    let sin = ((delta / 10.0).sin() * 28.0) as i32;
+    let cos = ((delta / 10.0).cos() * 28.0) as i32;
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(-29 - sin, 177 + cos), Size2D::new(181, 6)),
         white(),
@@ -182,6 +172,52 @@ pub fn draw_pillars(delta: f32) -> Result<(), Error> {
 }
 
 #[inline(always)]
+pub fn draw_stops(
+    current_stop_name: &str,
+    distance: i32,
+    next_stop_name: &str,
+    out_of_bounds: bool,
+) -> Result<(), Error> {
+    let graphics = Graphics::get();
+    graphics.fill_rect(
+        ScreenRect::new(Point2D::new(232, 24), Size2D::new(144, 67)),
+        white(),
+    )?;
+    graphics.draw_rect(
+        ScreenRect::new(Point2D::new(232, 24), Size2D::new(144, 67)),
+        black(),
+    )?;
+    // Arrow arm
+    graphics.draw_line(Point2D::new(232, 31), Point2D::new(369, 31), 1, black())?;
+    graphics.draw_line(Point2D::new(369, 31), Point2D::new(369, 52), 1, black())?;
+    // Arrow pointing down
+    graphics.draw_line(Point2D::new(369, 54), Point2D::new(363, 48), 1, black())?;
+    graphics.draw_line(Point2D::new(369, 54), Point2D::new(375, 48), 1, black())?;
+    // Text
+    Graphics::get().draw_text(current_stop_name, Point2D::new(243, 40))?;
+    // If out of bounds
+    if out_of_bounds {
+        Graphics::get().draw_text("Ndo cazzo vai", Point2D::new(243, 64))?;
+        return Ok(());
+    }
+    // If in bounds
+    let distance_str: String = if distance >= 1000 {
+        let mut d = distance.to_string();
+        // Remove two last characters
+        d.pop();
+        d.pop();
+        d + "km"
+    } else {
+        distance.to_string() + "m"
+    };
+    Graphics::get().draw_text(
+        &(distance_str + " " + next_stop_name),
+        Point2D::new(243, 64),
+    )?;
+    Ok(())
+}
+
+#[inline(always)]
 pub fn draw_floor() -> Result<(), Error> {
     Graphics::get().draw_line(
         Point2D::new(0, 210),
@@ -196,6 +232,9 @@ pub fn draw_floor() -> Result<(), Error> {
 pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(), Error> {
     let graphics = Graphics::get();
     let value = clamp(value, 0.0, 1.0);
+    // Text
+    Graphics::get().draw_text("Velocity:", Point2D::new(241, 151))?;
+    // Bar
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(241, 175), Size2D::new(138, 15)),
         white(),
@@ -209,10 +248,8 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(
         black(),
     )?;
     // Bar will flash if above 95%
-    if should_blink && value > 0.95 {
-        if delta % 40.0 < 20.0 {
-            return Ok(());
-        }
+    if should_blink && value > 0.95 && delta % 40.0 < 20.0 {
+        return Ok(());
     }
     graphics.fill_rect(
         ScreenRect::new(
@@ -220,6 +257,15 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(
             Size2D::new(((132 as f32) * value) as i32, 9),
         ),
         black(),
+    )?;
+    Ok(())
+}
+
+#[inline(always)]
+pub fn draw_score(score: usize) -> Result<(), Error> {
+    Graphics::get().draw_text(
+        &("Score: ".to_owned() + &score.to_string()),
+        Point2D::new(16, 16),
     )?;
     Ok(())
 }
@@ -247,6 +293,47 @@ pub fn draw_explosion(delta: f32, rng: &mut SmallRng) -> Result<(), Error> {
             },
         )?;
     }
+    Ok(())
+}
+
+#[inline(always)]
+pub fn draw_game_over_screen(delta: f32) -> Result<(), Error> {
+    let graphics = Graphics::get();
+    // Boxes
+    graphics.fill_rect(
+        ScreenRect::new(Point2D::new(29, 71), Size2D::new(342, 98)),
+        white(),
+    )?;
+    graphics.draw_rect(
+        ScreenRect::new(Point2D::new(29, 71), Size2D::new(342, 98)),
+        black(),
+    )?;
+    graphics.draw_rect(
+        ScreenRect::new(Point2D::new(32, 74), Size2D::new(336, 92)),
+        black(),
+    )?;
+    // Text
+    let distance = (delta * DELTA_TO_METERS - CIAMPINO as f32) as i32;
+    let mut text = String::new();
+    text.push_str("You are ");
+    let measurement_unit = if distance.abs() >= 1000 {
+        let mut d = distance.abs().to_string();
+        d.pop();
+        d.pop();
+        d + " km"
+    } else {
+        let d = distance.abs().to_string();
+        d + " meters"
+    };
+    text.push_str(&measurement_unit);
+    text.push_str(if distance.is_negative() {
+        " before Ciampino"
+    } else {
+        "after Ciampino"
+    });
+    Graphics::get().draw_text(&text, Point2D::new(44, 84))?;
+    Graphics::get().draw_text("Final score: 2000", Point2D::new(44, 108))?;
+    Graphics::get().draw_text("Press B to try again", Point2D::new(44, 141))?;
     Ok(())
 }
 
