@@ -1,5 +1,3 @@
-use crankstart::graphics;
-
 use super::*;
 
 #[inline(always)]
@@ -24,7 +22,7 @@ pub fn draw_mountains(delta: f32) -> Result<(), Error> {
 }
 
 #[inline(always)]
-pub fn draw_train(delta: f32) -> Result<(), Error> {
+pub fn draw_train() -> Result<(), Error> {
     let graphics = Graphics::get();
     // Body
     graphics.fill_rect(

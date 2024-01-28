@@ -47,7 +47,7 @@ const TRAIN_STOPS: [(usize, &str); 12] = [
 
 pub const fn prime_minister_rating(distance: i32) -> &'static str {
     match distance {
-        0..=5 => "Minister gives you a blow job",
+        0..=5 => "Minister plays your skin flute",
         6..=50 => "Minister gives you a promotion",
         51..=200 => "Minister gives you a handshake",
         201..=500 => "Minister is pleased",
@@ -177,7 +177,7 @@ impl Game for State {
 
         // Draw stuff
         draw_mountains(self.delta)?;
-        draw_train(self.delta)?;
+        draw_train()?;
         draw_wheels(self.delta)?;
         draw_wheel_bars(self.delta)?;
         draw_floor()?;
