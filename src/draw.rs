@@ -1,3 +1,5 @@
+use anyhow::Ok;
+
 use super::*;
 
 #[inline(always)]
@@ -294,18 +296,29 @@ pub fn draw_explosion(timer: i32, rng: &mut SmallRng) -> Result<(), Error> {
 }
 
 #[inline(always)]
-pub fn draw_post_explosion_screen() -> Result<(), Error> {
+pub fn draw_post_explosion_screen(timer: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
+
     // Background
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
         black(),
     )?;
-    // Boxes
+
+    // Box
     graphics.fill_rect(
-        ScreenRect::new(Point2D::new(29, 71), Size2D::new(342, 98)),
+        ScreenRect::new(
+            Point2D::new(29, 71),
+            Size2D::new((342.0 * timer) as i32, (98.0 * timer) as i32),
+        ),
         white(),
     )?;
+
+    // Show edges and text only if timer has been reached
+    if timer < 1.0 - f32::EPSILON {
+        return Ok(());
+    }
+
     graphics.draw_rect(
         ScreenRect::new(Point2D::new(29, 71), Size2D::new(342, 98)),
         black(),
@@ -318,22 +331,35 @@ pub fn draw_post_explosion_screen() -> Result<(), Error> {
     Graphics::get().draw_text("I told you not accelerate too much", Point2D::new(44, 84))?;
     Graphics::get().draw_text("Oh and by the way, you're fired", Point2D::new(44, 108))?;
     Graphics::get().draw_text("Press B to try again", Point2D::new(44, 141))?;
+
     Ok(())
 }
 
 #[inline(always)]
-pub fn draw_game_ended_screen(delta: f32, score: i32) -> Result<(), Error> {
+pub fn draw_game_ended_screen(timer: f32, delta: f32, score: i32) -> Result<(), Error> {
     let graphics = Graphics::get();
+
     // Background
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
         xor(),
     )?;
-    // Boxes
+
+    // Box
     graphics.fill_rect(
-        ScreenRect::new(Point2D::new(28, 55), Size2D::new(344, 129)),
+        ScreenRect::new(
+            Point2D::new(28, 55),
+            Size2D::new((344.0 * timer) as i32, (129.0 * timer) as i32),
+        ),
         white(),
     )?;
+
+    // Show edges and text only if timer has been reached
+    if timer < 1.0 - f32::EPSILON {
+        return Ok(());
+    }
+
+    // Edges
     graphics.draw_rect(
         ScreenRect::new(Point2D::new(28, 55), Size2D::new(344, 129)),
         black(),
@@ -342,6 +368,7 @@ pub fn draw_game_ended_screen(delta: f32, score: i32) -> Result<(), Error> {
         ScreenRect::new(Point2D::new(32, 59), Size2D::new(336, 121)),
         black(),
     )?;
+
     // Text
     let distance = (delta * DELTA_TO_METERS - CIAMPINO as f32) as i32;
     let mut text = String::new();
@@ -361,6 +388,7 @@ pub fn draw_game_ended_screen(delta: f32, score: i32) -> Result<(), Error> {
     } else {
         " after Ciampino"
     });
+
     Graphics::get().draw_text(&text, Point2D::new(44, 69))?;
     Graphics::get().draw_text(prime_minister_rating(distance.abs()), Point2D::new(44, 93))?;
     Graphics::get().draw_text(
@@ -368,12 +396,33 @@ pub fn draw_game_ended_screen(delta: f32, score: i32) -> Result<(), Error> {
         Point2D::new(44, 117),
     )?;
     Graphics::get().draw_text("Press B to try again", Point2D::new(44, 155))?;
+
     Ok(())
 }
 
 #[inline(always)]
-pub fn draw_intro_screen(delta: f32) -> Result<(), Error> {
+pub fn draw_intro_screen(timer: f32, delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
+    let scale = 1.0 - timer;
+
+    if timer >= 0.0 + f32::EPSILON {
+        graphics.fill_rect(
+            ScreenRect::new(
+                Point2D::new(22, 30),
+                Size2D::new((356.0 * scale) as i32, (179.0 * scale) as i32),
+            ),
+            white(),
+        )?;
+        graphics.draw_rect(
+            ScreenRect::new(
+                Point2D::new(22, 30),
+                Size2D::new((356.0 * scale) as i32, (179.0 * scale) as i32),
+            ),
+            black(),
+        )?;
+        return Ok(());
+    }
+
     for i in 0..20 {
         let x = ((i as f32 + (delta / 30.0)).sin() * (i as f32 / 3.0)) as i32;
         let y = ((i as f32 + (delta / 30.0)).cos() * (i as f32 / 3.0)) as i32;
@@ -399,6 +448,7 @@ pub fn draw_intro_screen(delta: f32) -> Result<(), Error> {
             graphics.draw_text("Press A to start", Point2D::new(44, 174))?;
         }
     }
+
     Ok(())
 }
 

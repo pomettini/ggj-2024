@@ -89,7 +89,9 @@ struct State {
     train: Train,
     score: f32,
     rng: SmallRng,
+    init_timer: Timer,
     explosion_timer: Timer,
+    game_over_timer: Timer,
 }
 
 impl State {
@@ -106,7 +108,9 @@ impl State {
             train,
             score: START_SCORE,
             rng,
-            explosion_timer: Timer::new(0, 50),
+            init_timer: Timer::new(0, 20, false),
+            explosion_timer: Timer::new(0, 40, true),
+            game_over_timer: Timer::new(0, 20, true),
         }))
     }
 }
@@ -130,8 +134,8 @@ impl Game for State {
         if self.state == GameState::Start {
             self.delta += self.train.velocity * SPEED;
             if pressed & PDButtons::kButtonA == PDButtons::kButtonA {
-                self.delta = 0.0;
-                self.state = GameState::During;
+                // Once timer reaches end, switches game state to during
+                self.init_timer.start();
             }
         } else if self.state == GameState::During {
             self.delta += self.train.velocity * SPEED;
@@ -201,12 +205,14 @@ impl Game for State {
 
         // UI
         if self.state == GameState::Exploded {
-            Display::get().set_refresh_rate(20.0)?;
             if !self.explosion_timer.step() {
+                Display::get().set_refresh_rate(20.0)?;
                 draw_explosion(self.explosion_timer.get_value(), &mut self.rng)?;
                 screen_shake(20, &mut self.rng)?;
             } else {
-                draw_post_explosion_screen()?;
+                Display::get().set_refresh_rate(50.0)?;
+                draw_post_explosion_screen(self.game_over_timer.get_percentage())?;
+                self.game_over_timer.step();
             }
         }
 
@@ -225,12 +231,22 @@ impl Game for State {
                 unclamped_score
             );
             */
-            draw_game_ended_screen(self.delta, final_score)?;
+            draw_game_ended_screen(
+                self.game_over_timer.get_percentage(),
+                self.delta,
+                final_score,
+            )?;
+            self.game_over_timer.step();
         }
 
         // Intro screen
         if self.state == GameState::Start {
-            draw_intro_screen(self.delta)?;
+            draw_intro_screen(self.init_timer.get_percentage(), self.delta)?;
+            if self.init_timer.step() {
+                // Once timer reaches end, switches game state to during
+                self.delta = 0.0;
+                self.state = GameState::During;
+            }
         }
 
         // system.draw_fps(0, 0)?;

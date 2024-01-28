@@ -26,20 +26,32 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     }
 }
 
+#[inline(always)]
+pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
+
 pub struct Timer {
     current: i32,
     end: i32,
+    started: bool,
     reached: bool,
 }
 
 impl Timer {
     #[inline(always)]
-    pub fn new(start: i32, end: i32) -> Self {
+    pub fn new(start: i32, end: i32, auto_start: bool) -> Self {
         Self {
             current: start,
             end,
+            started: auto_start,
             reached: false,
         }
+    }
+
+    #[inline(always)]
+    pub fn start(&mut self) {
+        self.started = true;
     }
 
     #[inline(always)]
@@ -48,7 +60,15 @@ impl Timer {
     }
 
     #[inline(always)]
+    pub fn get_percentage(&self) -> f32 {
+        self.current as f32 / self.end as f32
+    }
+
+    #[inline(always)]
     pub fn step(&mut self) -> bool {
+        if !self.started {
+            return false;
+        }
         if self.reached {
             return true;
         }
