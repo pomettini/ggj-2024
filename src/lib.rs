@@ -7,6 +7,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::string::ToString;
 use anyhow::Error;
+use crankstart::display;
 use crankstart::display::Display;
 use crankstart::geometry::ScreenRect;
 use crankstart::{crankstart_game, graphics::*, log_to_console, system::*, Game, Playdate};
@@ -92,6 +93,7 @@ struct State {
     init_timer: Timer,
     explosion_timer: Timer,
     game_over_timer: Timer,
+    was_crank_moved: bool,
 }
 
 impl State {
@@ -111,6 +113,7 @@ impl State {
             init_timer: Timer::new(0, 20, false),
             explosion_timer: Timer::new(0, 40, true),
             game_over_timer: Timer::new(0, 20, true),
+            was_crank_moved: false,
         }))
     }
 }
@@ -140,7 +143,10 @@ impl Game for State {
         } else if self.state == GameState::During {
             self.delta += self.train.velocity * SPEED;
             self.train.velocity += clamp(crank_change, 0.0, f32::MAX) / 1500.0;
-            self.train.velocity -= INERTIA;
+            // If user has not moved crank, velocity will not be decreased
+            if self.was_crank_moved {
+                self.train.velocity -= INERTIA;
+            }
             self.score -= 0.02;
         }
 
@@ -247,6 +253,10 @@ impl Game for State {
                 self.delta = 0.0;
                 self.state = GameState::During;
             }
+        }
+
+        if !self.was_crank_moved && self.state == GameState::During && crank_change > f32::EPSILON {
+            self.was_crank_moved = true;
         }
 
         // system.draw_fps(0, 0)?;
