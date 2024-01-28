@@ -251,6 +251,7 @@ impl Game for State {
             if self.init_timer.step() {
                 // Once timer reaches end, switches game state to during
                 self.delta = 0.0;
+                self.train.current_stop = 0;
                 self.state = GameState::During;
             }
         }

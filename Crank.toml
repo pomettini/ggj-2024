@@ -1,9 +1,9 @@
 [[target]]
-name = "ggj-2024"
+name = "train-to-ciampino"
 assets = []
 
 [target.metadata]
-name = "GGJ 2024"
+name = "Train to Ciampino"
 author = "Giorgio Pomettini"
 bundle_id = "com.pomettini.ggj2024"
 version = "0.1"
