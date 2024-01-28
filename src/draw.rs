@@ -1,12 +1,3 @@
-use alloc::string::String;
-use anyhow::Ok;
-use crankstart::{graphics, log_to_console};
-use euclid::Trig;
-use rand::{
-    distributions::{self, DistMap},
-    RngCore,
-};
-
 use super::*;
 
 #[inline(always)]
@@ -197,7 +188,7 @@ pub fn draw_stops(
     Graphics::get().draw_text(current_stop_name, Point2D::new(243, 40))?;
     // If out of bounds
     if out_of_bounds {
-        Graphics::get().draw_text("Ndo cazzo vai", Point2D::new(243, 64))?;
+        Graphics::get().draw_text("Wtf are u going?", Point2D::new(243, 64))?;
         return Ok(());
     }
     // If in bounds
@@ -233,18 +224,18 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(
     let graphics = Graphics::get();
     let value = clamp(value, 0.0, 1.0);
     // Text
-    Graphics::get().draw_text("Velocity:", Point2D::new(241, 151))?;
+    Graphics::get().draw_text("Velocity:", Point2D::new(232, 154))?;
     // Bar
     graphics.fill_rect(
-        ScreenRect::new(Point2D::new(241, 175), Size2D::new(138, 15)),
+        ScreenRect::new(Point2D::new(232, 178), Size2D::new(144, 15)),
         white(),
     )?;
     graphics.draw_rect(
-        ScreenRect::new(Point2D::new(241, 175), Size2D::new(138, 15)),
+        ScreenRect::new(Point2D::new(232, 178), Size2D::new(144, 15)),
         black(),
     )?;
     graphics.draw_rect(
-        ScreenRect::new(Point2D::new(244, 178), Size2D::new(132, 9)),
+        ScreenRect::new(Point2D::new(235, 181), Size2D::new(138, 9)),
         black(),
     )?;
     // Bar will flash if above 95%
@@ -253,8 +244,8 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(
     }
     graphics.fill_rect(
         ScreenRect::new(
-            Point2D::new(244, 178),
-            Size2D::new(((132 as f32) * value) as i32, 9),
+            Point2D::new(235, 181),
+            Size2D::new(((138 as f32) * value) as i32, 9),
         ),
         black(),
     )?;
@@ -271,7 +262,7 @@ pub fn draw_score(score: usize) -> Result<(), Error> {
 }
 
 #[inline(always)]
-pub fn draw_explosion(delta: f32, rng: &mut SmallRng) -> Result<(), Error> {
+pub fn draw_explosion(timer: i32, rng: &mut SmallRng) -> Result<(), Error> {
     let graphics = Graphics::get();
     for i in 0..10 {
         let x = rng.next_u32() % 200;
@@ -293,12 +284,23 @@ pub fn draw_explosion(delta: f32, rng: &mut SmallRng) -> Result<(), Error> {
             },
         )?;
     }
+    if timer % 4 == 0 {
+        graphics.fill_rect(
+            ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
+            xor(),
+        )?;
+    }
     Ok(())
 }
 
 #[inline(always)]
-pub fn draw_game_over_screen(delta: f32) -> Result<(), Error> {
+pub fn draw_post_explosion_screen() -> Result<(), Error> {
     let graphics = Graphics::get();
+    // Background
+    graphics.fill_rect(
+        ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
+        black(),
+    )?;
     // Boxes
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(29, 71), Size2D::new(342, 98)),
@@ -310,6 +312,34 @@ pub fn draw_game_over_screen(delta: f32) -> Result<(), Error> {
     )?;
     graphics.draw_rect(
         ScreenRect::new(Point2D::new(32, 74), Size2D::new(336, 92)),
+        black(),
+    )?;
+    // Text
+    Graphics::get().draw_text("You went a bit too far", Point2D::new(44, 84))?;
+    Graphics::get().draw_text("Oh and by the way, you're fired", Point2D::new(44, 108))?;
+    Graphics::get().draw_text("Press B to try again", Point2D::new(44, 141))?;
+    Ok(())
+}
+
+#[inline(always)]
+pub fn draw_game_ended_screen(delta: f32, score: i32) -> Result<(), Error> {
+    let graphics = Graphics::get();
+    // Background
+    graphics.fill_rect(
+        ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
+        xor(),
+    )?;
+    // Boxes
+    graphics.fill_rect(
+        ScreenRect::new(Point2D::new(28, 55), Size2D::new(344, 129)),
+        white(),
+    )?;
+    graphics.draw_rect(
+        ScreenRect::new(Point2D::new(28, 55), Size2D::new(344, 129)),
+        black(),
+    )?;
+    graphics.draw_rect(
+        ScreenRect::new(Point2D::new(32, 59), Size2D::new(336, 121)),
         black(),
     )?;
     // Text
@@ -329,11 +359,15 @@ pub fn draw_game_over_screen(delta: f32) -> Result<(), Error> {
     text.push_str(if distance.is_negative() {
         " before Ciampino"
     } else {
-        "after Ciampino"
+        " after Ciampino"
     });
-    Graphics::get().draw_text(&text, Point2D::new(44, 84))?;
-    Graphics::get().draw_text("Final score: 2000", Point2D::new(44, 108))?;
-    Graphics::get().draw_text("Press B to try again", Point2D::new(44, 141))?;
+    Graphics::get().draw_text(&text, Point2D::new(44, 69))?;
+    Graphics::get().draw_text(prime_minister_rating(distance.abs()), Point2D::new(44, 93))?;
+    Graphics::get().draw_text(
+        &("Final score: ".to_owned() + &score.to_string()),
+        Point2D::new(44, 117),
+    )?;
+    Graphics::get().draw_text("Press B to try again", Point2D::new(44, 155))?;
     Ok(())
 }
 

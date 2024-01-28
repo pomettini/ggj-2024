@@ -2,33 +2,32 @@
 
 extern crate alloc;
 
-use core::f32::MAX;
-
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
+use alloc::string::String;
 use alloc::string::ToString;
 use anyhow::Error;
 use crankstart::display::Display;
 use crankstart::geometry::ScreenRect;
-use crankstart::{crankstart_game, system::*, Game, Playdate};
-use crankstart::{graphics::*, log_to_console};
+use crankstart::{crankstart_game, graphics::*, log_to_console, system::*, Game, Playdate};
 use crankstart_sys::PDButtons;
 use draw::*;
-use euclid::{Point2D, Size2D, Vector2D};
+use euclid::Trig;
+use euclid::{Point2D, Size2D};
 use rand::rngs::SmallRng;
+use rand::RngCore;
 use rand::SeedableRng;
 
 mod draw;
 mod utils;
 
-use draw::*;
 use utils::*;
 
 const START_SCORE: f32 = 100.0;
-const CIAMPINO: usize = 28000;
-const SPEED: f32 = 5.0;
-const DELTA_TO_METERS: f32 = 3.0;
-const INERTIA: f32 = 0.003;
+const CIAMPINO: usize = 30000;
+const SPEED: f32 = 6.0;
+const DELTA_TO_METERS: f32 = 4.0;
+const INERTIA: f32 = 0.005;
 const LAST_STATION: usize = 11;
 
 const TRAIN_STOPS: [(usize, &str); 12] = [
@@ -46,6 +45,19 @@ const TRAIN_STOPS: [(usize, &str); 12] = [
     (666666, "Game Over"),
 ];
 
+pub const fn prime_minister_rating(distance: i32) -> &'static str {
+    match distance {
+        0..=5 => "Minister gives you a blow job",
+        6..=50 => "Minister gives you a promotion",
+        51..=200 => "Minister gives you a handshake",
+        201..=500 => "Minister is pleased",
+        501..=1000 => "Minister is a bit upset",
+        1001..=5000 => "Minister is pissed off",
+        5001..=10000 => "Minister slaps your face",
+        _ => "Minister fires you and your family",
+    }
+}
+
 #[derive(PartialEq)]
 enum GameState {
     Start,
@@ -61,6 +73,7 @@ struct Train {
 }
 
 impl Train {
+    #[inline(always)]
     fn get_next_stop_distance(&mut self, position: i32) -> i32 {
         let distance = (TRAIN_STOPS[self.current_stop].0 as i32) - position;
         if distance <= 0 {
@@ -76,9 +89,11 @@ struct State {
     train: Train,
     score: f32,
     rng: SmallRng,
+    explosion_timer: Timer,
 }
 
 impl State {
+    #[inline(always)]
     pub fn new(_playdate: &Playdate) -> Result<Box<Self>, Error> {
         Display::get().set_refresh_rate(50.0)?;
         let mut train = Train::default();
@@ -91,11 +106,13 @@ impl State {
             train,
             score: START_SCORE,
             rng,
+            explosion_timer: Timer::new(0, 50),
         }))
     }
 }
 
 impl Game for State {
+    #[inline(always)]
     fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
         Graphics::get().clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
         let system = System::get();
@@ -116,7 +133,7 @@ impl Game for State {
             }
         } else if self.state == GameState::During {
             self.delta += self.train.velocity * SPEED;
-            self.train.velocity += clamp(crank_change, 0.0, f32::MAX) / 2000.0;
+            self.train.velocity += clamp(crank_change, 0.0, f32::MAX) / 1500.0;
             self.train.velocity -= INERTIA;
             self.score -= 0.02;
         }
@@ -129,12 +146,17 @@ impl Game for State {
             self.state = GameState::Arrived;
         };
 
-        if self.train.velocity > 0.95 {
-            screen_shake(4, &mut self.rng)?;
-        } else if self.train.velocity > 0.9 {
-            screen_shake(2, &mut self.rng)?;
-        } else if self.train.velocity > 0.8 {
-            screen_shake(1, &mut self.rng)?;
+        // Screen shake
+        if self.state == GameState::During {
+            if self.train.velocity > 0.95 {
+                screen_shake(4, &mut self.rng)?;
+            } else if self.train.velocity > 0.9 {
+                screen_shake(2, &mut self.rng)?;
+            } else if self.train.velocity > 0.8 {
+                screen_shake(1, &mut self.rng)?;
+            } else {
+                Display::get().set_offset(Point2D::new(0, 0))?;
+            }
         } else {
             Display::get().set_offset(Point2D::new(0, 0))?;
         }
@@ -168,18 +190,35 @@ impl Game for State {
                 self.delta,
                 self.state == GameState::During,
             )?;
-            draw_score(self.score as usize)?;
+            // draw_score(self.score as usize)?;
         }
+        draw_pillars(self.delta)?;
         // UI
         if self.state == GameState::Exploded {
             Display::get().set_refresh_rate(20.0)?;
-            draw_explosion(self.delta, &mut self.rng)?;
-            screen_shake(16, &mut self.rng)?;
+            if !self.explosion_timer.step() {
+                draw_explosion(self.explosion_timer.get_value(), &mut self.rng)?;
+                screen_shake(20, &mut self.rng)?;
+            } else {
+                draw_post_explosion_screen()?;
+            }
         }
-        draw_pillars(self.delta)?;
         // Game over screen
         if self.state == GameState::Arrived {
-            draw_game_over_screen(self.delta)?;
+            let abs_distance_score =
+                ((self.delta * DELTA_TO_METERS - CIAMPINO as f32) as i32).abs();
+            let speed_score = (self.score * 15.0) as i32;
+            let unclamped_score = speed_score + (1000 - abs_distance_score);
+            let final_score = clamp(unclamped_score, 0, i32::MAX);
+            /*
+            log_to_console!(
+                "{}, {}, {}",
+                abs_distance_score,
+                speed_score,
+                unclamped_score
+            );
+            */
+            draw_game_ended_screen(self.delta, final_score)?;
         }
         Ok(())
     }
