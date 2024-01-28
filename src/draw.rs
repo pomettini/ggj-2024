@@ -1,3 +1,5 @@
+use crankstart::graphics;
+
 use super::*;
 
 #[inline(always)]
@@ -315,7 +317,7 @@ pub fn draw_post_explosion_screen() -> Result<(), Error> {
         black(),
     )?;
     // Text
-    Graphics::get().draw_text("You went a bit too far", Point2D::new(44, 84))?;
+    Graphics::get().draw_text("I told you not accelerate too much", Point2D::new(44, 84))?;
     Graphics::get().draw_text("Oh and by the way, you're fired", Point2D::new(44, 108))?;
     Graphics::get().draw_text("Press B to try again", Point2D::new(44, 141))?;
     Ok(())
@@ -368,6 +370,37 @@ pub fn draw_game_ended_screen(delta: f32, score: i32) -> Result<(), Error> {
         Point2D::new(44, 117),
     )?;
     Graphics::get().draw_text("Press B to try again", Point2D::new(44, 155))?;
+    Ok(())
+}
+
+#[inline(always)]
+pub fn draw_intro_screen(delta: f32) -> Result<(), Error> {
+    let graphics = Graphics::get();
+    for i in 0..20 {
+        let x = ((i as f32 + (delta / 30.0)).sin() * (i as f32 / 3.0)) as i32;
+        let y = ((i as f32 + (delta / 30.0)).cos() * (i as f32 / 3.0)) as i32;
+        graphics.fill_rect(
+            ScreenRect::new(Point2D::new(x + 22, -y + 30), Size2D::new(356, 179)),
+            white(),
+        )?;
+        graphics.draw_rect(
+            ScreenRect::new(Point2D::new(x + 22, -y + 30), Size2D::new(356, 179)),
+            black(),
+        )?;
+        if i == 19 {
+            graphics.draw_text("Train to Ciampino", Point2D::new(44, 50))?;
+            graphics.draw_text(
+                "A minister is requesting a special stop",
+                Point2D::new(44, 88),
+            )?;
+            graphics.draw_text(
+                "Turn the crank to accelerate the train",
+                Point2D::new(44, 112),
+            )?;
+            graphics.draw_text("But not too much or it will explode", Point2D::new(44, 136))?;
+            graphics.draw_text("Press A to start", Point2D::new(44, 174))?;
+        }
+    }
     Ok(())
 }
 

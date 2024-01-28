@@ -25,8 +25,8 @@ use utils::*;
 
 const START_SCORE: f32 = 100.0;
 const CIAMPINO: usize = 30000;
-const SPEED: f32 = 6.0;
-const DELTA_TO_METERS: f32 = 4.0;
+const SPEED: f32 = 5.0;
+const DELTA_TO_METERS: f32 = 5.0;
 const INERTIA: f32 = 0.005;
 const LAST_STATION: usize = 11;
 
@@ -120,7 +120,9 @@ impl Game for State {
         let crank_change = system.get_crank_change()?;
 
         // Reset if B is pressed
-        if pressed & PDButtons::kButtonB == PDButtons::kButtonB {
+        if (self.state == GameState::Arrived || self.state == GameState::Exploded)
+            && pressed & PDButtons::kButtonB == PDButtons::kButtonB
+        {
             *self = *State::new(_playdate)?;
         }
 
@@ -137,6 +139,7 @@ impl Game for State {
             self.train.velocity -= INERTIA;
             self.score -= 0.02;
         }
+
         // Train can never move below 0.0 of velocity
         self.train.velocity = clamp(self.train.velocity, 0.0, f32::MAX);
         if self.train.velocity > (1.0 - f32::EPSILON) {
@@ -178,6 +181,7 @@ impl Game for State {
         draw_wheels(self.delta)?;
         draw_wheel_bars(self.delta)?;
         draw_floor()?;
+
         if self.state != GameState::Start {
             draw_stops(
                 current_stop_name,
@@ -192,7 +196,9 @@ impl Game for State {
             )?;
             // draw_score(self.score as usize)?;
         }
+
         draw_pillars(self.delta)?;
+
         // UI
         if self.state == GameState::Exploded {
             Display::get().set_refresh_rate(20.0)?;
@@ -203,6 +209,7 @@ impl Game for State {
                 draw_post_explosion_screen()?;
             }
         }
+
         // Game over screen
         if self.state == GameState::Arrived {
             let abs_distance_score =
@@ -220,6 +227,13 @@ impl Game for State {
             */
             draw_game_ended_screen(self.delta, final_score)?;
         }
+
+        // Intro screen
+        if self.state == GameState::Start {
+            draw_intro_screen(self.delta)?;
+        }
+
+        // system.draw_fps(0, 0)?;
         Ok(())
     }
 }
