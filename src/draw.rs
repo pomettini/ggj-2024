@@ -5,7 +5,9 @@ use super::*;
 #[inline(always)]
 pub fn draw_mountains(delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
+
     let delta = delta % (89.0 * 2.0);
+
     for i in (0..8).step_by(2) {
         graphics.draw_line(
             Point2D::new((89 * i) - delta as i32, 116),
@@ -20,12 +22,14 @@ pub fn draw_mountains(delta: f32) -> Result<(), Error> {
             black(),
         )?;
     }
+
     Ok(())
 }
 
 #[inline(always)]
 pub fn draw_train() -> Result<(), Error> {
     let graphics = Graphics::get();
+
     // Body
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(-1, 60), Size2D::new(201, 120)),
@@ -50,12 +54,14 @@ pub fn draw_train() -> Result<(), Error> {
         ScreenRect::new(Point2D::new(120, 82), Size2D::new(30, 45)),
         black(),
     )?;
+
     Ok(())
 }
 
 #[inline(always)]
 pub fn draw_wheels(delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
+
     for i in 0..3 {
         let distance = 80;
         // Wheel
@@ -122,14 +128,17 @@ pub fn draw_wheels(delta: f32) -> Result<(), Error> {
             black(),
         )?;
     }
+
     Ok(())
 }
 
 #[inline(always)]
 pub fn draw_wheel_bars(delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
+
     let sin = ((delta / 10.0).sin() * 28.0) as i32;
     let cos = ((delta / 10.0).cos() * 28.0) as i32;
+
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(-29 - sin, 177 + cos), Size2D::new(181, 6)),
         white(),
@@ -138,6 +147,7 @@ pub fn draw_wheel_bars(delta: f32) -> Result<(), Error> {
         ScreenRect::new(Point2D::new(-29 - sin, 177 + cos), Size2D::new(181, 6)),
         black(),
     )?;
+
     Ok(())
 }
 
@@ -145,6 +155,7 @@ pub fn draw_wheel_bars(delta: f32) -> Result<(), Error> {
 pub fn draw_pillars(delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
     let delta = delta * 5.0 % 120.0;
+
     for i in 0..5 {
         graphics.fill_rect(
             ScreenRect::new(
@@ -161,6 +172,7 @@ pub fn draw_pillars(delta: f32) -> Result<(), Error> {
             black(),
         )?;
     }
+
     Ok(())
 }
 
@@ -207,6 +219,7 @@ pub fn draw_stops(
         &(distance_str + " " + next_stop_name),
         Point2D::new(243, 64),
     )?;
+
     Ok(())
 }
 
@@ -218,6 +231,7 @@ pub fn draw_floor() -> Result<(), Error> {
         1,
         LCDColor::Solid(LCDSolidColor::kColorBlack),
     )?;
+
     Ok(())
 }
 
@@ -225,8 +239,10 @@ pub fn draw_floor() -> Result<(), Error> {
 pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(), Error> {
     let graphics = Graphics::get();
     let value = clamp(value, 0.0, 1.0);
+
     // Text
     Graphics::get().draw_text("Velocity:", Point2D::new(232, 154))?;
+
     // Bar
     graphics.fill_rect(
         ScreenRect::new(Point2D::new(232, 178), Size2D::new(144, 15)),
@@ -236,14 +252,17 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(
         ScreenRect::new(Point2D::new(232, 178), Size2D::new(144, 15)),
         black(),
     )?;
+
     graphics.draw_rect(
         ScreenRect::new(Point2D::new(235, 181), Size2D::new(138, 9)),
         black(),
     )?;
+
     // Bar will flash if above 95%
     if should_blink && value > 0.95 && delta % 40.0 < 20.0 {
         return Ok(());
     }
+
     graphics.fill_rect(
         ScreenRect::new(
             Point2D::new(235, 181),
@@ -251,6 +270,7 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) -> Result<(
         ),
         black(),
     )?;
+
     Ok(())
 }
 
@@ -260,12 +280,14 @@ pub fn draw_score(score: usize) -> Result<(), Error> {
         &("Score: ".to_owned() + &score.to_string()),
         Point2D::new(16, 16),
     )?;
+
     Ok(())
 }
 
 #[inline(always)]
 pub fn draw_explosion(timer: i32, rng: &mut SmallRng) -> Result<(), Error> {
     let graphics = Graphics::get();
+
     for i in 0..10 {
         let x = rng.next_u32() % 200;
         let y = rng.next_u32() % 120;
@@ -286,12 +308,14 @@ pub fn draw_explosion(timer: i32, rng: &mut SmallRng) -> Result<(), Error> {
             },
         )?;
     }
+
     if timer % 4 == 0 {
         graphics.fill_rect(
             ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
             xor(),
         )?;
     }
+
     Ok(())
 }
 
@@ -327,6 +351,7 @@ pub fn draw_post_explosion_screen(timer: f32) -> Result<(), Error> {
         ScreenRect::new(Point2D::new(32, 74), Size2D::new(336, 92)),
         black(),
     )?;
+
     // Text
     Graphics::get().draw_text("I told you not accelerate too much", Point2D::new(44, 84))?;
     Graphics::get().draw_text("Oh and by the way, you're fired", Point2D::new(44, 108))?;
@@ -405,6 +430,7 @@ pub fn draw_intro_screen(timer: f32, delta: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
     let scale = 1.0 - timer;
 
+    // If timer is ongoing, play animation
     if timer >= 0.0 + f32::EPSILON {
         graphics.fill_rect(
             ScreenRect::new(
@@ -423,6 +449,7 @@ pub fn draw_intro_screen(timer: f32, delta: f32) -> Result<(), Error> {
         return Ok(());
     }
 
+    // Otherwise draw window trail and text
     for i in 0..20 {
         let x = ((i as f32 + (delta / 30.0)).sin() * (i as f32 / 3.0)) as i32;
         let y = ((i as f32 + (delta / 30.0)).cos() * (i as f32 / 3.0)) as i32;
