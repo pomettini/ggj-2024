@@ -14,6 +14,7 @@ use crankstart::{crankstart_game, graphics::*, log_to_console, system::*, Game, 
 use crankstart_sys::PDButtons;
 use draw::*;
 use euclid::Trig;
+use euclid::UnknownUnit;
 use euclid::{Point2D, Size2D};
 use rand::rngs::SmallRng;
 use rand::RngCore;
@@ -29,7 +30,11 @@ const CIAMPINO: usize = 30000;
 const SPEED: f32 = 5.0;
 const DELTA_TO_METERS: f32 = 5.0;
 const INERTIA: f32 = 0.005;
-const LAST_STATION: usize = 11;
+const LAST_STATION: usize = TRAIN_STOPS.len() - 1;
+const SPEED_SCORE_MULTIPLIER: f32 = 15.0;
+
+const POINT2D_ZERO: Point2D<i32, UnknownUnit> = Point2D::new(0, 0);
+const SIZE2D_SCREEN_SIZE: Size2D<i32, UnknownUnit> = Size2D::new(400, 240);
 
 const TRAIN_STOPS: [(usize, &str); 12] = [
     (0, "P. Nuova"),
@@ -128,7 +133,7 @@ impl Game for State {
 
         // Reset if B is pressed
         if (self.state == GameState::Arrived || self.state == GameState::Exploded)
-            && pressed & PDButtons::kButtonB == PDButtons::kButtonB
+            && b_button_pressed(pressed)
         {
             *self = *State::new(_playdate)?;
         }
@@ -136,7 +141,7 @@ impl Game for State {
         // Movement
         if self.state == GameState::Start {
             self.delta += self.train.velocity * SPEED;
-            if pressed & PDButtons::kButtonA == PDButtons::kButtonA {
+            if a_button_pressed(pressed) {
                 // Once timer reaches end, switches game state to during
                 self.init_timer.start();
             }
@@ -168,10 +173,10 @@ impl Game for State {
             } else if self.train.velocity > 0.8 {
                 screen_shake(1, &mut self.rng)?;
             } else {
-                Display::get().set_offset(Point2D::new(0, 0))?;
+                Display::get().set_offset(POINT2D_ZERO)?;
             }
         } else {
-            Display::get().set_offset(Point2D::new(0, 0))?;
+            Display::get().set_offset(POINT2D_ZERO)?;
         }
 
         // Get current and next stop
@@ -204,7 +209,6 @@ impl Game for State {
                 self.delta,
                 self.state == GameState::During,
             )?;
-            // draw_score(self.score as usize)?;
         }
 
         draw_pillars(self.delta)?;
@@ -226,28 +230,23 @@ impl Game for State {
         if self.state == GameState::Arrived {
             let abs_distance_score =
                 ((self.delta * DELTA_TO_METERS - CIAMPINO as f32) as i32).abs();
-            let speed_score = (self.score * 15.0) as i32;
+            let speed_score = (self.score * SPEED_SCORE_MULTIPLIER) as i32;
             let unclamped_score = speed_score + (1000 - abs_distance_score);
             let final_score = clamp(unclamped_score, 0, i32::MAX);
-            /*
-            log_to_console!(
-                "{}, {}, {}",
-                abs_distance_score,
-                speed_score,
-                unclamped_score
-            );
-            */
+
             draw_game_ended_screen(
                 self.game_over_timer.get_percentage(),
                 self.delta,
                 final_score,
             )?;
+
             self.game_over_timer.step();
         }
 
         // Intro screen
         if self.state == GameState::Start {
             draw_intro_screen(self.init_timer.get_percentage(), self.delta)?;
+
             if self.init_timer.step() {
                 // Once timer reaches end, switches game state to during
                 self.delta = 0.0;
@@ -260,7 +259,6 @@ impl Game for State {
             self.was_crank_moved = true;
         }
 
-        // system.draw_fps(0, 0)?;
         Ok(())
     }
 }

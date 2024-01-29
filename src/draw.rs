@@ -1,5 +1,3 @@
-use anyhow::Ok;
-
 use super::*;
 
 #[inline(always)]
@@ -9,12 +7,14 @@ pub fn draw_mountains(delta: f32) -> Result<(), Error> {
     let delta = delta % (89.0 * 2.0);
 
     for i in (0..8).step_by(2) {
+        // Bottom left to top middle
         graphics.draw_line(
             Point2D::new((89 * i) - delta as i32, 116),
             Point2D::new((89 * (i + 1)) - delta as i32, 27),
             1,
             black(),
         )?;
+        // Top middle to bottom right
         graphics.draw_line(
             Point2D::new(89 * (i + 1) - delta as i32, 27),
             Point2D::new(89 * (i + 2) - delta as i32, 116),
@@ -310,10 +310,7 @@ pub fn draw_explosion(timer: i32, rng: &mut SmallRng) -> Result<(), Error> {
     }
 
     if timer % 4 == 0 {
-        graphics.fill_rect(
-            ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
-            xor(),
-        )?;
+        graphics.fill_rect(ScreenRect::new(POINT2D_ZERO, SIZE2D_SCREEN_SIZE), xor())?;
     }
 
     Ok(())
@@ -324,10 +321,7 @@ pub fn draw_post_explosion_screen(timer: f32) -> Result<(), Error> {
     let graphics = Graphics::get();
 
     // Background
-    graphics.fill_rect(
-        ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
-        black(),
-    )?;
+    graphics.fill_rect(ScreenRect::new(POINT2D_ZERO, SIZE2D_SCREEN_SIZE), black())?;
 
     // Box
     graphics.fill_rect(
@@ -365,10 +359,7 @@ pub fn draw_game_ended_screen(timer: f32, delta: f32, score: i32) -> Result<(), 
     let graphics = Graphics::get();
 
     // Background
-    graphics.fill_rect(
-        ScreenRect::new(Point2D::new(0, 0), Size2D::new(400, 240)),
-        xor(),
-    )?;
+    graphics.fill_rect(ScreenRect::new(POINT2D_ZERO, SIZE2D_SCREEN_SIZE), xor())?;
 
     // Box
     graphics.fill_rect(

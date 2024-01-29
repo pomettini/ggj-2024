@@ -16,6 +16,16 @@ pub const fn xor() -> LCDColor {
 }
 
 #[inline(always)]
+pub fn a_button_pressed(pressed: PDButtons) -> bool {
+    pressed & PDButtons::kButtonA == PDButtons::kButtonA
+}
+
+#[inline(always)]
+pub fn b_button_pressed(pressed: PDButtons) -> bool {
+    pressed & PDButtons::kButtonB == PDButtons::kButtonB
+}
+
+#[inline(always)]
 pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     if input < min {
         min
