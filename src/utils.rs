@@ -37,7 +37,7 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
 }
 
 #[inline(always)]
-pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
+pub const fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
@@ -70,7 +70,7 @@ impl Timer {
     }
 
     #[inline(always)]
-    pub fn get_percentage(&self) -> f32 {
+    pub const fn get_percentage(&self) -> f32 {
         self.current as f32 / self.end as f32
     }
 
