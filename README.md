@@ -4,7 +4,7 @@
 
 A minister is requesting a special stop to Roma Ciampino. Turn the crank to accelerate the train, but not too much or it will explode!
 
-Made in 48h for the [Roma Game Dev 2024](https://globalgamejam.org/jam-sites/2024/roma-game-dev-jam-chapter-14)
+Made in 48h for the [Roma Game Dev 2024](https://globalgamejam.org/jam-sites/2024/roma-game-dev-jam-chapter-14) Global Game Jam
 
 Any reference to events, places and persons is purely coincidental
 
