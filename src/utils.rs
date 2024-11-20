@@ -1,31 +1,5 @@
 use super::*;
 
-#[inline(always)]
-pub const fn white() -> LCDColor {
-    LCDColor::Solid(LCDSolidColor::kColorWhite)
-}
-
-#[inline(always)]
-pub const fn black() -> LCDColor {
-    LCDColor::Solid(LCDSolidColor::kColorBlack)
-}
-
-#[inline(always)]
-pub const fn xor() -> LCDColor {
-    LCDColor::Solid(LCDSolidColor::kColorXOR)
-}
-
-#[inline(always)]
-pub fn a_button_pressed(pressed: PDButtons) -> bool {
-    pressed & PDButtons::kButtonA == PDButtons::kButtonA
-}
-
-#[inline(always)]
-pub fn b_button_pressed(pressed: PDButtons) -> bool {
-    pressed & PDButtons::kButtonB == PDButtons::kButtonB
-}
-
-#[inline(always)]
 pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     if input < min {
         min
@@ -36,7 +10,6 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     }
 }
 
-#[inline(always)]
 pub const fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
@@ -64,17 +37,14 @@ impl Timer {
         self.started = true;
     }
 
-    #[inline(always)]
     pub const fn get_value(&self) -> i32 {
         self.current
     }
 
-    #[inline(always)]
     pub const fn get_percentage(&self) -> f32 {
         self.current as f32 / self.end as f32
     }
 
-    #[inline(always)]
     pub fn step(&mut self) -> bool {
         if !self.started {
             return false;

@@ -3,33 +3,63 @@ name = "ggj-2024"
 version = "0.1.0"
 edition = "2021"
 
-[package.metadata.cargo-xbuild]
-memcpy = false
-sysroot_path = "target/sysroot"
-panic_immediate_abort = false
-
-[profile.dev]
-panic = "abort"
-opt-level = 'z'
-lto = true
-
-[profile.release]
-panic = "abort"
-opt-level = 'z'
-lto = true
-
 [lib]
-crate-type = ["staticlib", "cdylib"]
+path = "src/lib.rs"
+crate-type = [
+    "staticlib", # for hardware
+    "dylib",     # for simulator
+    "rlib",      # to link with bin
+]
 
 [dependencies]
-crankstart = { path = "./crankstart" }
-crankstart-sys = { path = "./crankstart/crankstart-sys" }
-anyhow = { version = "1.0.31", default-features = false }
-euclid = { version = "0.22.9", default-features = false, features = [ "libm" ] }
-hashbrown = "0.14.0"
+playdate = "*"
 rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
+playdate-controls = "*"
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 
-[dependencies.cstr_core]
-version = "=0.1.2"
-default-features = false
-features = [ "alloc" ]
+[[example]]
+name = "buttons"
+crate-type = ["dylib", "staticlib"]
+path = "examples/buttons.rs"
+required-features = ["sys/lang-items", "sys/entry-point"]
+
+# Playdate Package Info
+# doc: https://github.com/boozook/playdate/blob/main/support/build/README.md#metadata
+# official doc: https://sdk.play.date/#pdxinfo
+[package.metadata.playdate]
+name = "playdate-rs-test"
+author = "You, Inc"
+version = "0.1.0"
+bundle-id = "com.yourcompany.playdate.rs.test"
+description = "Description for the playdate-rs-test program."
+
+content-warning = "This game contains mild realistic, violence and bloodshed."
+content-warning2 = "Really scary game."
+
+image-path = "img/system"
+launch-sound-path = "sfx/jump"
+
+# Assets Rules
+# doc: https://github.com/boozook/playdate/blob/main/support/build/README.md#assets
+[package.metadata.playdate.assets]
+"img/system/" = "${PLAYDATE_SDK_PATH}/Examples/Game Template/Source/SystemAssets/*.png"
+"sfx/jump.wav" = "${PLAYDATE_SDK_PATH}/Examples/Level 1-1/Source/sfx/jump.wav"
+# This is a complex way of specifying what assets should be included.
+# Left hand is a path where asset should be in the package,
+# Right hand is the path where source(s) should be found.
+
+# Also this way supports simple include and exclude instructions:
+# "rel-to-crate-root/file-to-include" = true   # left hand is a local path, relative to crate-root,
+# "file-to-exclude" = false  # OR resulting path that where asset will be in the resulting package.
+
+# Another way to declare assets is much simpler:
+# [package.metadata.playdate]
+# assets = ["assets/**/*.wav", "assets/**/*.png"]
+# That means "just include all of this".
+
+# Assets Configuration
+[package.metadata.playdate.options.assets]
+dependencies = true    # allow to build assets for dependencies (default is `true`)
+overwrite = true       # overwrite existing (default is `true`)
+method = "link"        # "copy" or "link"   (default is `link`)
+follow-symlinks = true # follow symlinks    (default is `true`)

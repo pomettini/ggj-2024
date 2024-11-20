@@ -1,22 +1,38 @@
 #![no_std]
-#![feature(const_fn_floating_point_arithmetic)]
-
 extern crate alloc;
+
+#[macro_use]
+extern crate playdate as pd;
+
+#[macro_use]
+extern crate playdate_controls as controls;
+
+use controls::buttons::IterSingleButtons;
+use controls::buttons::PDButtonsExt;
+use controls::buttons::PDButtonsIter;
+use controls::peripherals::Accelerometer;
+use controls::peripherals::Buttons;
 
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::string::ToString;
-use anyhow::Error;
-use crankstart::display;
-use crankstart::display::Display;
-use crankstart::geometry::ScreenRect;
-use crankstart::{crankstart_game, graphics::*, log_to_console, system::*, Game, Playdate};
-use crankstart_sys::PDButtons;
+use controls::peripherals::Crank;
 use draw::*;
-use euclid::Trig;
-use euclid::UnknownUnit;
-use euclid::{Point2D, Size2D};
+use num_traits::real::Real;
+
+use core::ffi::*;
+use core::ptr::NonNull;
+use pd::display::Display;
+use pd::fs::Path;
+use pd::graphics::bitmap::*;
+use pd::graphics::text::*;
+use pd::graphics::*;
+use pd::sound::prelude::*;
+use pd::sys::ffi::PlaydateAPI;
+use pd::sys::EventLoopCtrl;
+use pd::system::prelude::*;
+use pd::system::update::UpdateCtrl;
 use rand::rngs::SmallRng;
 use rand::RngCore;
 use rand::SeedableRng;
@@ -34,8 +50,20 @@ const INERTIA: f32 = 0.005;
 const LAST_STATION: usize = TRAIN_STOPS.len() - 1;
 const SPEED_SCORE_MULTIPLIER: f32 = 15.0;
 
-const POINT2D_ZERO: Point2D<i32, UnknownUnit> = Point2D::new(0, 0);
-const SIZE2D_SCREEN_SIZE: Size2D<i32, UnknownUnit> = Size2D::new(400, 240);
+const POINT2D_ZERO: Point<i32> = Point::new(0, 0);
+const SIZE2D_SCREEN_SIZE: Point<i32> = Point::new(400, 240);
+
+/// 2D point
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    const fn new(x: T, y: T) -> Point<T> {
+        Point { x, y }
+    }
+}
 
 const TRAIN_STOPS: [(usize, &str); 12] = [
     (0, "P. Nuova"),
@@ -103,14 +131,12 @@ struct State {
 }
 
 impl State {
-    #[inline(always)]
-    pub fn new(_playdate: &Playdate) -> Result<Box<Self>, Error> {
-        Display::get().set_refresh_rate(50.0)?;
+    fn new() -> Self {
         let mut train = Train::default();
         train.velocity = 0.5;
-        let (_, time) = System::get().get_seconds_since_epoch().unwrap();
+        let time = System::Default().seconds_since_epoch();
         let rng = SmallRng::seed_from_u64(time as u64);
-        Ok(Box::new(Self {
+        Self {
             state: GameState::Start,
             delta: 0.0,
             train,
@@ -120,29 +146,45 @@ impl State {
             explosion_timer: Timer::new(0, 40, true),
             game_over_timer: Timer::new(0, 20, true),
             was_crank_moved: false,
-        }))
+        }
+    }
+
+    fn event(&'static mut self, event: SystemEvent) -> EventLoopCtrl {
+        match event {
+            // Initial setup
+            SystemEvent::Init => {
+                Display::Default().set_refresh_rate(50.0);
+
+                // Register our update handler that defined below
+                self.set_update_handler();
+
+                println!("Game init complete");
+            }
+            // TODO: React to other events
+            _ => {}
+        }
+        EventLoopCtrl::Continue
     }
 }
 
-impl Game for State {
-    #[inline(always)]
-    fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
-        Graphics::get().clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
-        let system = System::get();
-        let (pressed, _, _) = system.get_button_state()?;
-        let crank_change = system.get_crank_change()?;
+impl Update for State {
+    fn update(&mut self) -> UpdateCtrl {
+        clear(Color::WHITE);
+        let system = System::Default();
+        let buttons = Buttons::Default().get();
+        let crank_change = Crank::Default().change();
 
         // Reset if B is pressed
         if (self.state == GameState::Arrived || self.state == GameState::Exploded)
-            && b_button_pressed(pressed)
+            && buttons.current.b()
         {
-            *self = *State::new(_playdate)?;
+            *self = State::new();
         }
 
         // Movement
         if self.state == GameState::Start {
             self.delta += self.train.velocity * SPEED;
-            if a_button_pressed(pressed) {
+            if buttons.current.a() {
                 // Once timer reaches end, switches game state to during
                 self.init_timer.start();
             }
@@ -168,16 +210,16 @@ impl Game for State {
         // Screen shake
         if self.state == GameState::During {
             if self.train.velocity > 0.95 {
-                screen_shake(4, &mut self.rng)?;
+                screen_shake(4, &mut self.rng);
             } else if self.train.velocity > 0.9 {
-                screen_shake(2, &mut self.rng)?;
+                screen_shake(2, &mut self.rng);
             } else if self.train.velocity > 0.8 {
-                screen_shake(1, &mut self.rng)?;
+                screen_shake(1, &mut self.rng);
             } else {
-                Display::get().set_offset(POINT2D_ZERO)?;
+                Display::Default().set_offset(POINT2D_ZERO.x, POINT2D_ZERO.y);
             }
         } else {
-            Display::get().set_offset(POINT2D_ZERO)?;
+            Display::Default().set_offset(POINT2D_ZERO.x, POINT2D_ZERO.y);
         }
 
         // Get current and next stop
@@ -192,11 +234,11 @@ impl Game for State {
         let next_stop_name = TRAIN_STOPS[self.train.current_stop].1;
 
         // Draw stuff
-        draw_mountains(self.delta)?;
-        draw_train()?;
-        draw_wheels(self.delta)?;
-        draw_wheel_bars(self.delta)?;
-        draw_floor()?;
+        draw_mountains(self.delta);
+        draw_train();
+        draw_wheels(self.delta);
+        draw_wheel_bars(self.delta);
+        draw_floor();
 
         if self.state != GameState::Start {
             draw_stops(
@@ -204,25 +246,25 @@ impl Game for State {
                 next_stop_distance,
                 next_stop_name,
                 self.train.current_stop == LAST_STATION,
-            )?;
+            );
             draw_velocity_bar(
                 self.train.velocity,
                 self.delta,
                 self.state == GameState::During,
-            )?;
+            );
         }
 
-        draw_pillars(self.delta)?;
+        draw_pillars(self.delta);
 
         // UI
         if self.state == GameState::Exploded {
             if !self.explosion_timer.step() {
-                Display::get().set_refresh_rate(20.0)?;
-                draw_explosion(self.explosion_timer.get_value(), &mut self.rng)?;
-                screen_shake(20, &mut self.rng)?;
+                Display::Default().set_refresh_rate(20.0);
+                draw_explosion(self.explosion_timer.get_value(), &mut self.rng);
+                screen_shake(20, &mut self.rng);
             } else {
-                Display::get().set_refresh_rate(50.0)?;
-                draw_post_explosion_screen(self.game_over_timer.get_percentage())?;
+                Display::Default().set_refresh_rate(50.0);
+                draw_post_explosion_screen(self.game_over_timer.get_percentage());
                 self.game_over_timer.step();
             }
         }
@@ -239,14 +281,14 @@ impl Game for State {
                 self.game_over_timer.get_percentage(),
                 self.delta,
                 final_score,
-            )?;
+            );
 
             self.game_over_timer.step();
         }
 
         // Intro screen
         if self.state == GameState::Start {
-            draw_intro_screen(self.init_timer.get_percentage(), self.delta)?;
+            draw_intro_screen(self.init_timer.get_percentage(), self.delta);
 
             if self.init_timer.step() {
                 // Once timer reaches end, switches game state to during
@@ -260,8 +302,27 @@ impl Game for State {
             self.was_crank_moved = true;
         }
 
-        Ok(())
+        UpdateCtrl::Continue
     }
 }
 
-crankstart_game!(State);
+#[no_mangle]
+pub fn event_handler(
+    _api: NonNull<PlaydateAPI>,
+    event: SystemEvent,
+    _sim_key_code: u32,
+) -> EventLoopCtrl {
+    // Unsafe static storage for our state.
+    // Usually it's safe because there's only one thread.
+    pub static mut STATE: Option<State> = None;
+    if unsafe { STATE.is_none() } {
+        let state = State::new();
+        unsafe { STATE = Some(state) }
+    }
+
+    // Call state.event
+    unsafe { STATE.as_mut().expect("impossible") }.event(event)
+}
+
+// Needed for debug build, absolutely optional
+ll_symbols!();
