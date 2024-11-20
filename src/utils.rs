@@ -1,5 +1,3 @@
-use super::*;
-
 pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     if input < min {
         min
@@ -8,10 +6,6 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     } else {
         input
     }
-}
-
-pub const fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    a + (b - a) * t
 }
 
 pub struct Timer {

@@ -187,16 +187,10 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) {
     graphics.fill_rect(
         235,
         181,
-        ((138 as f32) * value) as i32,
+        ((138_f32) * value) as i32,
         9,
         LCDColorConst::BLACK,
     );
-}
-
-pub fn draw_score(score: usize) {
-    Graphics::Cached()
-        .draw_text(&("Score: ".to_owned() + &score.to_string()), 16, 16)
-        .unwrap();
 }
 
 pub fn draw_explosion(timer: i32, rng: &mut SmallRng) {
@@ -261,15 +255,13 @@ pub fn draw_post_explosion_screen(timer: f32) {
     graphics.draw_rect(32, 74, 336, 92, LCDColorConst::BLACK);
 
     // Text
-    Graphics::Cached()
+    graphics
         .draw_text("I told you not accelerate too much", 44, 84)
         .unwrap();
-    Graphics::Cached()
+    graphics
         .draw_text("Oh and by the way, you're fired", 44, 108)
         .unwrap();
-    Graphics::Cached()
-        .draw_text("Press B to try again", 44, 141)
-        .unwrap();
+    graphics.draw_text("Press B to try again", 44, 141).unwrap();
 }
 
 pub fn draw_game_ended_screen(timer: f32, delta: f32, score: i32) {
@@ -322,16 +314,14 @@ pub fn draw_game_ended_screen(timer: f32, delta: f32, score: i32) {
         " after Ciampino"
     });
 
-    Graphics::Cached().draw_text(&text, 44, 69).unwrap();
-    Graphics::Cached()
+    graphics.draw_text(&text, 44, 69).unwrap();
+    graphics
         .draw_text(prime_minister_rating(distance.abs()), 44, 93)
         .unwrap();
-    Graphics::Cached()
+    graphics
         .draw_text(&("Final score: ".to_owned() + &score.to_string()), 44, 117)
         .unwrap();
-    Graphics::Cached()
-        .draw_text("Press B to try again", 44, 155)
-        .unwrap();
+    graphics.draw_text("Press B to try again", 44, 155).unwrap();
 }
 
 pub fn draw_intro_screen(timer: f32, delta: f32) {
@@ -378,7 +368,6 @@ pub fn draw_intro_screen(timer: f32, delta: f32) {
     }
 }
 
-#[inline(always)]
 pub fn screen_shake(amount: usize, rng: &mut SmallRng) {
     let x = rng.next_u32() % (amount * 2) as u32;
     let y = rng.next_u32() % (amount * 2) as u32;

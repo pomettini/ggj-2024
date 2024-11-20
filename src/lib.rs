@@ -123,14 +123,15 @@ struct State {
 
 impl State {
     fn new() -> Self {
-        let mut train = Train::default();
-        train.velocity = 0.5;
         let time = System::Cached().seconds_since_epoch();
         let rng = SmallRng::seed_from_u64(time as u64);
         Self {
             state: GameState::Start,
             delta: 0.0,
-            train,
+            train: Train {
+                velocity: 0.5,
+                ..Default::default()
+            },
             score: START_SCORE,
             rng,
             init_timer: Timer::new(0, 20, false),
@@ -162,9 +163,8 @@ impl Update for State {
     fn update(&mut self) -> UpdateCtrl {
         clear(Color::WHITE);
 
-        System::Default().draw_fps(0, 0);
+        // System::Default().draw_fps(0, 0);
 
-        let system = System::Cached();
         let buttons = Buttons::Cached().get();
         let crank_change = Crank::Cached().change();
 
