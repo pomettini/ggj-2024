@@ -63,3 +63,13 @@ dependencies = true    # allow to build assets for dependencies (default is `tru
 overwrite = true       # overwrite existing (default is `true`)
 method = "link"        # "copy" or "link"   (default is `link`)
 follow-symlinks = true # follow symlinks    (default is `true`)
+
+[profile.dev]
+panic = "abort"
+opt-level = 3
+lto = true
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true

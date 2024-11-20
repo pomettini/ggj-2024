@@ -22,7 +22,6 @@ pub struct Timer {
 }
 
 impl Timer {
-    #[inline(always)]
     pub fn new(start: i32, end: i32, auto_start: bool) -> Self {
         Self {
             current: start,
@@ -32,7 +31,6 @@ impl Timer {
         }
     }
 
-    #[inline(always)]
     pub fn start(&mut self) {
         self.started = true;
     }

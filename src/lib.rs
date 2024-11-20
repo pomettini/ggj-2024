@@ -4,31 +4,22 @@ extern crate alloc;
 #[macro_use]
 extern crate playdate as pd;
 
-#[macro_use]
 extern crate playdate_controls as controls;
 
-use controls::buttons::IterSingleButtons;
 use controls::buttons::PDButtonsExt;
-use controls::buttons::PDButtonsIter;
-use controls::peripherals::Accelerometer;
 use controls::peripherals::Buttons;
 
 use alloc::borrow::ToOwned;
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::string::ToString;
 use controls::peripherals::Crank;
 use draw::*;
 use num_traits::real::Real;
 
-use core::ffi::*;
 use core::ptr::NonNull;
 use pd::display::Display;
-use pd::fs::Path;
 use pd::graphics::bitmap::*;
-use pd::graphics::text::*;
 use pd::graphics::*;
-use pd::sound::prelude::*;
 use pd::sys::ffi::PlaydateAPI;
 use pd::sys::EventLoopCtrl;
 use pd::system::prelude::*;
@@ -134,7 +125,7 @@ impl State {
     fn new() -> Self {
         let mut train = Train::default();
         train.velocity = 0.5;
-        let time = System::Default().seconds_since_epoch();
+        let time = System::Cached().seconds_since_epoch();
         let rng = SmallRng::seed_from_u64(time as u64);
         Self {
             state: GameState::Start,
@@ -153,7 +144,7 @@ impl State {
         match event {
             // Initial setup
             SystemEvent::Init => {
-                Display::Default().set_refresh_rate(50.0);
+                Display::Cached().set_refresh_rate(50.0);
 
                 // Register our update handler that defined below
                 self.set_update_handler();
@@ -170,9 +161,12 @@ impl State {
 impl Update for State {
     fn update(&mut self) -> UpdateCtrl {
         clear(Color::WHITE);
-        let system = System::Default();
-        let buttons = Buttons::Default().get();
-        let crank_change = Crank::Default().change();
+
+        System::Default().draw_fps(0, 0);
+
+        let system = System::Cached();
+        let buttons = Buttons::Cached().get();
+        let crank_change = Crank::Cached().change();
 
         // Reset if B is pressed
         if (self.state == GameState::Arrived || self.state == GameState::Exploded)
@@ -216,10 +210,10 @@ impl Update for State {
             } else if self.train.velocity > 0.8 {
                 screen_shake(1, &mut self.rng);
             } else {
-                Display::Default().set_offset(POINT2D_ZERO.x, POINT2D_ZERO.y);
+                Display::Cached().set_offset(POINT2D_ZERO.x, POINT2D_ZERO.y);
             }
         } else {
-            Display::Default().set_offset(POINT2D_ZERO.x, POINT2D_ZERO.y);
+            Display::Cached().set_offset(POINT2D_ZERO.x, POINT2D_ZERO.y);
         }
 
         // Get current and next stop
@@ -259,11 +253,11 @@ impl Update for State {
         // UI
         if self.state == GameState::Exploded {
             if !self.explosion_timer.step() {
-                Display::Default().set_refresh_rate(20.0);
+                Display::Cached().set_refresh_rate(20.0);
                 draw_explosion(self.explosion_timer.get_value(), &mut self.rng);
                 screen_shake(20, &mut self.rng);
             } else {
-                Display::Default().set_refresh_rate(50.0);
+                Display::Cached().set_refresh_rate(50.0);
                 draw_post_explosion_screen(self.game_over_timer.get_percentage());
                 self.game_over_timer.step();
             }

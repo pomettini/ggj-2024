@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn draw_mountains(delta: f32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     let delta = delta % (89.0 * 2.0);
 
@@ -28,7 +28,7 @@ pub fn draw_mountains(delta: f32) {
 }
 
 pub fn draw_train() {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     // Body
     graphics.fill_rect(-1, 60, 201, 120, LCDColorConst::WHITE);
@@ -42,7 +42,7 @@ pub fn draw_train() {
 }
 
 pub fn draw_wheels(delta: f32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     for i in 0..3 {
         let distance = 80;
@@ -102,7 +102,7 @@ pub fn draw_wheels(delta: f32) {
 }
 
 pub fn draw_wheel_bars(delta: f32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     let sin = ((delta / 10.0).sin() * 28.0) as i32;
     let cos = ((delta / 10.0).cos() * 28.0) as i32;
@@ -112,7 +112,7 @@ pub fn draw_wheel_bars(delta: f32) {
 }
 
 pub fn draw_pillars(delta: f32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
     let delta = delta * 5.0 % 120.0;
 
     for i in 0..5 {
@@ -127,7 +127,7 @@ pub fn draw_stops(
     next_stop_name: &str,
     out_of_bounds: bool,
 ) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
     graphics.fill_rect(232, 24, 144, 67, LCDColorConst::WHITE);
     graphics.draw_rect(232, 24, 144, 67, LCDColorConst::BLACK);
     // Arrow arm
@@ -137,10 +137,14 @@ pub fn draw_stops(
     graphics.draw_line(369, 54, 363, 48, 1, LCDColorConst::BLACK);
     graphics.draw_line(369, 54, 375, 48, 1, LCDColorConst::BLACK);
     // Text
-    Graphics::Default().draw_text(current_stop_name, 243, 40);
+    Graphics::Cached()
+        .draw_text(current_stop_name, 243, 40)
+        .unwrap();
     // If out of bounds
     if out_of_bounds {
-        Graphics::Default().draw_text("Wtf are u going", 243, 64);
+        Graphics::Cached()
+            .draw_text("Wtf are u going", 243, 64)
+            .unwrap();
         return;
     }
     // If in bounds
@@ -153,19 +157,21 @@ pub fn draw_stops(
     } else {
         distance.to_string() + "m"
     };
-    Graphics::Default().draw_text(&(distance_str + " " + next_stop_name), 243, 64);
+    Graphics::Cached()
+        .draw_text(&(distance_str + " " + next_stop_name), 243, 64)
+        .unwrap();
 }
 
 pub fn draw_floor() {
-    Graphics::Default().draw_line(0, 210, 400, 210, 1, LCDColorConst::BLACK);
+    Graphics::Cached().draw_line(0, 210, 400, 210, 1, LCDColorConst::BLACK);
 }
 
 pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
     let value = clamp(value, 0.0, 1.0);
 
     // Text
-    Graphics::Default().draw_text("Velocity:", 232, 154);
+    Graphics::Cached().draw_text("Velocity:", 232, 154).unwrap();
 
     // Bar
     graphics.fill_rect(232, 178, 144, 15, LCDColorConst::WHITE);
@@ -188,11 +194,13 @@ pub fn draw_velocity_bar(value: f32, delta: f32, should_blink: bool) {
 }
 
 pub fn draw_score(score: usize) {
-    Graphics::Default().draw_text(&("Score: ".to_owned() + &score.to_string()), 16, 16);
+    Graphics::Cached()
+        .draw_text(&("Score: ".to_owned() + &score.to_string()), 16, 16)
+        .unwrap();
 }
 
 pub fn draw_explosion(timer: i32, rng: &mut SmallRng) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     for i in 0..10 {
         let x = rng.next_u32() % 200;
@@ -224,7 +232,7 @@ pub fn draw_explosion(timer: i32, rng: &mut SmallRng) {
 }
 
 pub fn draw_post_explosion_screen(timer: f32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     // Background
     graphics.fill_rect(
@@ -253,13 +261,19 @@ pub fn draw_post_explosion_screen(timer: f32) {
     graphics.draw_rect(32, 74, 336, 92, LCDColorConst::BLACK);
 
     // Text
-    Graphics::Default().draw_text("I told you not accelerate too much", 44, 84);
-    Graphics::Default().draw_text("Oh and by the way, you're fired", 44, 108);
-    Graphics::Default().draw_text("Press B to try again", 44, 141);
+    Graphics::Cached()
+        .draw_text("I told you not accelerate too much", 44, 84)
+        .unwrap();
+    Graphics::Cached()
+        .draw_text("Oh and by the way, you're fired", 44, 108)
+        .unwrap();
+    Graphics::Cached()
+        .draw_text("Press B to try again", 44, 141)
+        .unwrap();
 }
 
 pub fn draw_game_ended_screen(timer: f32, delta: f32, score: i32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
 
     // Background
     graphics.fill_rect(
@@ -308,14 +322,20 @@ pub fn draw_game_ended_screen(timer: f32, delta: f32, score: i32) {
         " after Ciampino"
     });
 
-    Graphics::Default().draw_text(&text, 44, 69);
-    Graphics::Default().draw_text(prime_minister_rating(distance.abs()), 44, 93);
-    Graphics::Default().draw_text(&("Final score: ".to_owned() + &score.to_string()), 44, 117);
-    Graphics::Default().draw_text("Press B to try again", 44, 155);
+    Graphics::Cached().draw_text(&text, 44, 69).unwrap();
+    Graphics::Cached()
+        .draw_text(prime_minister_rating(distance.abs()), 44, 93)
+        .unwrap();
+    Graphics::Cached()
+        .draw_text(&("Final score: ".to_owned() + &score.to_string()), 44, 117)
+        .unwrap();
+    Graphics::Cached()
+        .draw_text("Press B to try again", 44, 155)
+        .unwrap();
 }
 
 pub fn draw_intro_screen(timer: f32, delta: f32) {
-    let graphics = Graphics::Default();
+    let graphics = Graphics::Cached();
     let scale = 1.0 - timer;
 
     // If timer is ongoing, play animation
@@ -343,11 +363,17 @@ pub fn draw_intro_screen(timer: f32, delta: f32) {
         graphics.fill_rect(x + 22, -y + 30, 356, 179, LCDColorConst::WHITE);
         graphics.draw_rect(x + 22, -y + 30, 356, 179, LCDColorConst::BLACK);
         if i == 19 {
-            graphics.draw_text("Train to Ciampino", 44, 50);
-            graphics.draw_text("A minister is requesting a special stop", 44, 88);
-            graphics.draw_text("Turn the crank to accelerate the train", 44, 112);
-            graphics.draw_text("But not too much or it will explode", 44, 136);
-            graphics.draw_text("Press A to start", 44, 174);
+            graphics.draw_text("Train to Ciampino", 44, 50).unwrap();
+            graphics
+                .draw_text("A minister is requesting a special stop", 44, 88)
+                .unwrap();
+            graphics
+                .draw_text("Turn the crank to accelerate the train", 44, 112)
+                .unwrap();
+            graphics
+                .draw_text("But not too much or it will explode", 44, 136)
+                .unwrap();
+            graphics.draw_text("Press A to start", 44, 174).unwrap();
         }
     }
 }
@@ -356,5 +382,5 @@ pub fn draw_intro_screen(timer: f32, delta: f32) {
 pub fn screen_shake(amount: usize, rng: &mut SmallRng) {
     let x = rng.next_u32() % (amount * 2) as u32;
     let y = rng.next_u32() % (amount * 2) as u32;
-    Display::Default().set_offset((amount as i32) - x as i32, (amount as i32) - y as i32);
+    Display::Cached().set_offset((amount as i32) - x as i32, (amount as i32) - y as i32);
 }
