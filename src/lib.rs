@@ -1,29 +1,25 @@
 #![no_std]
+
 extern crate alloc;
 
-#[macro_use]
 extern crate playdate as pd;
+// extern crate playdate_controls as controls;
 
-extern crate playdate_controls as controls;
-
-use controls::buttons::PDButtonsExt;
-use controls::peripherals::Buttons;
+use pd::controls::buttons::PDButtonsExt;
+use pd::controls::peripherals::Buttons;
 
 use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::string::ToString;
-use controls::peripherals::Crank;
 use draw::*;
 use num_traits::real::Real;
+use pd::controls::peripherals::Crank;
 
-use core::ptr::NonNull;
+use crankit_game_loop::{game_loop, Game, Playdate};
 use pd::display::Display;
 use pd::graphics::bitmap::*;
 use pd::graphics::*;
-use pd::sys::ffi::PlaydateAPI;
-use pd::sys::EventLoopCtrl;
 use pd::system::prelude::*;
-use pd::system::update::UpdateCtrl;
 use rand::rngs::SmallRng;
 use rand::RngCore;
 use rand::SeedableRng;
@@ -99,7 +95,6 @@ struct Train {
 }
 
 impl Train {
-    #[inline(always)]
     fn get_next_stop_distance(&mut self, position: i32) -> i32 {
         let distance = (TRAIN_STOPS[self.current_stop].0 as i32) - position;
         if distance <= 0 {
@@ -109,7 +104,7 @@ impl Train {
     }
 }
 
-struct State {
+pub struct MyGame {
     state: GameState,
     delta: f32,
     train: Train,
@@ -121,8 +116,10 @@ struct State {
     was_crank_moved: bool,
 }
 
-impl State {
-    fn new() -> Self {
+impl Game for MyGame {
+    fn new(_: &Playdate) -> Self {
+        Display::Cached().set_refresh_rate(50.0);
+
         let time = System::Cached().seconds_since_epoch();
         let rng = SmallRng::seed_from_u64(time as u64);
         Self {
@@ -141,29 +138,11 @@ impl State {
         }
     }
 
-    fn event(&'static mut self, event: SystemEvent) -> EventLoopCtrl {
-        match event {
-            // Initial setup
-            SystemEvent::Init => {
-                Display::Cached().set_refresh_rate(50.0);
-
-                // Register our update handler that defined below
-                self.set_update_handler();
-
-                println!("Game init complete");
-            }
-            // TODO: React to other events
-            _ => {}
-        }
-        EventLoopCtrl::Continue
-    }
-}
-
-impl Update for State {
-    fn update(&mut self) -> UpdateCtrl {
+    fn update(&mut self, pd: &Playdate) {
         clear(Color::WHITE);
 
-        // System::Default().draw_fps(0, 0);
+        #[cfg(feature = "draw-fps")]
+        System::Default().draw_fps(0, 0);
 
         let buttons = Buttons::Cached().get();
         let crank_change = Crank::Cached().change();
@@ -172,7 +151,7 @@ impl Update for State {
         if (self.state == GameState::Arrived || self.state == GameState::Exploded)
             && buttons.current.b()
         {
-            *self = State::new();
+            *self = MyGame::new(pd);
         }
 
         // Movement
@@ -295,28 +274,7 @@ impl Update for State {
         if !self.was_crank_moved && self.state == GameState::During && crank_change > f32::EPSILON {
             self.was_crank_moved = true;
         }
-
-        UpdateCtrl::Continue
     }
 }
 
-#[no_mangle]
-pub fn event_handler(
-    _api: NonNull<PlaydateAPI>,
-    event: SystemEvent,
-    _sim_key_code: u32,
-) -> EventLoopCtrl {
-    // Unsafe static storage for our state.
-    // Usually it's safe because there's only one thread.
-    pub static mut STATE: Option<State> = None;
-    if unsafe { STATE.is_none() } {
-        let state = State::new();
-        unsafe { STATE = Some(state) }
-    }
-
-    // Call state.event
-    unsafe { STATE.as_mut().expect("impossible") }.event(event)
-}
-
-// Needed for debug build, absolutely optional
-ll_symbols!();
+game_loop!(MyGame);
